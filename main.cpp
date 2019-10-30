@@ -9,23 +9,20 @@
  * 
  */
 #include "Stepper.h"
-#define SW1_Malzeme 9 // Malzeme algýlama swich'inin baglý olduðu pin girilecek. (dgtPÝN X - GND)
+#include "main.h"
 
-#define SW2_Motor_home 6 // Motor konum algýlama swich'inin baðlý olduðu pin girilecek. ( ditPÝN X - GND)
+#define SW1_Malzeme 9               // Malzeme algýlama swich'inin baglý olduðu pin girilecek. (dgtPÝN X - GND)
+#define SW2_Motor_home 6            // Motor konum algýlama swich'inin baðlý olduðu pin girilecek. ( ditPÝN X - GND)
+#define SW3_Motor_last 8            // motor konum pini
+#define ROLE1_Kaynak_Cihazi 3       // Cihazýn baðlý olduðu rolenin pini girilecek.
+#define ROLE2_Valf 5                // Selenoidvalfin baðlý olduðu pin girilecek.
+#define ROLE3_Vakum_Valf 4          // Vakumun baðlý olduðu role girilecek.
 
-#define SW3_Motor_last 8 // motor konum pini
-
-#define ROLE1_Kaynak_Cihazi 3 // Cihazýn baðlý olduðu rolenin pini girilecek.
-
-#define ROLE2_Valf 5 // Selenoidvalfin baðlý olduðu pin girilecek.
-
-#define ROLE3_Vakum_Valf 4 // Vakumun baðlý olduðu role girilecek.
-
-const int PIN_START = A5; // Start butonunun baðlý olduðu analog pin girilecek.
-const int PIN_STOP = A4;  //stop pin
-int xPin = A0;            // A0-A5 analog pinlerinden herhangi birine baðlanabilir.
-int yPin = A1;            // A0-A5 analog pinlerinden herhangi birine baðlanabilir.
-//int butonPin = 2; // Joystick buton pini arduino baðlantýsý (Joystick SW çýkýþý)
+const int PIN_START = A5;           // Start butonunun baðlý olduðu analog pin girilecek.
+const int PIN_STOP = A4;            //stop pin
+int xPin = A0;                      // A0-A5 analog pinlerinden herhangi birine baðlanabilir.
+int yPin = A1;                      // A0-A5 analog pinlerinden herhangi birine baðlanabilir.
+//int butonPin = 2;                 // Joystick buton pini arduino baðlantýsý (Joystick SW çýkýþý)
 const int stepsPerRevolution = 200; // change this to fit the number of steps per revolution
 static int state = 0;
 static int Pause_Mode = 0;
@@ -35,7 +32,7 @@ Stepper myStepper(stepsPerRevolution, 10, 11, 12, 13);
 
 void Emergency()
 {
-  unsigned long i;
+   unsigned long i;
   delay_1();
 }
 void delay_1()
@@ -109,10 +106,8 @@ void loop()
 
     switch (state)
     {
-
       //bu state'in görevi boþta durmak
-
-    case 0:
+    case IDLE_STATE:
 
       state = 0;
       pin_stop = analogRead(PIN_STOP);
@@ -133,7 +128,7 @@ void loop()
 
       break;
 
-    case 1:
+    case STEP_INIT_STATE:
       Serial.println("state 1");
       digitalWrite(ROLE1_Kaynak_Cihazi, HIGH);
 
@@ -152,37 +147,33 @@ void loop()
         swich2_param = digitalRead(SW2_Motor_home);
         // delay(500);
       }
-
       state = 3;
 
       break;
 
-    case 2:
+    case SECOND_STATE:
 
       printf("case 2\n");
-
       state = 3;
 
       break;
 
-    case 3:
+    case MATERIAL_CONTROL_STATE:
       Serial.println("case 3 running");
       swich1_param = digitalRead(SW1_Malzeme);
       Serial.print("swich1_param->");
       Serial.println(swich1_param);
       if (swich1_param == 1)
       {
-
         state = 4;
       }
       else
       {
-
         state = 0;
       }
       break;
 
-    case 4:
+    case STEP_POSITION_STATE:
       //state = 5;
       int xPozisyonu = 0;
       int yPozisyonu = 0;
@@ -190,7 +181,6 @@ void loop()
 
       while (Pause_Mode == 1)
       {
-
         pin_start = analogRead(PIN_START);
         if (pin_start >= 1015)
         {
@@ -211,12 +201,10 @@ void loop()
         swich3_param = digitalRead(SW3_Motor_last);
         if ((swich2_param == 0) && (xPozisyonu > 1000))
         {
-
           myStepper.step(200);
         }
         else if ((xPozisyonu < 10) && (swich3_param == 0))
         {
-
           myStepper.step(-200);
         }
         if (yPozisyonu > 1000)
@@ -226,7 +214,6 @@ void loop()
         }
         else if (yPozisyonu < 10)
         {
-
           Serial.println("Y ekseninde Aþagý -> röle aç");
           digitalWrite(ROLE2_Valf, HIGH);
         }
@@ -255,7 +242,7 @@ void loop()
       // }
       // break;
 
-    case 5:
+    case STEP_HOME_SWITCH_CONTROL:
       Serial.println("state 5 running");
       swich2_param = digitalRead(SW2_Motor_home);
 
@@ -269,10 +256,9 @@ void loop()
       }
       Serial.println("state 6");
       state = 6;
-
       //break;
 
-    case 6:
+    case STEP_LAST_STATE:
       Serial.println("state 6 running");
       delay(1000);
 
@@ -283,19 +269,15 @@ void loop()
       delay(1000);
       myStepper.step(-300);
       state = 7;
-
       // break;
 
-    case 7:
+    case MAINTENANCE_STATE:
 
       Serial.println("state 7 running");
-
       swich3_param = digitalRead(SW3_Motor_last);
-
       //delay(500);
       swich1_param = digitalRead(SW1_Malzeme);
       // delay(500);
-
       Serial.print("state 7 swich3_param->");
       Serial.println(swich3_param);
       Serial.print("state 7 swich1_param->");
@@ -322,7 +304,6 @@ void loop()
           state = 4;
           break;
         }
-
         if (swich3_param == 1)
         {
           break;
@@ -332,7 +313,6 @@ void loop()
       {
         state = 4;
       }
-
       if ((swich3_param == 1) && (swich1_param == 0))
       {
         while (1)
@@ -341,7 +321,6 @@ void loop()
           delay(1000);
           Serial.println("state 7 200");
           myStepper.step(200);
-
           digitalWrite(ROLE2_Valf, LOW);
           delay(1000);
 
